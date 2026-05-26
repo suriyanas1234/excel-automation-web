@@ -20,13 +20,18 @@ A simple web app to filter production Excel files.
 
 ## Features
 
-- Drag-drop file upload
-- Auto-processes on upload
-- Shows filtered row count
-- Downloads as Excel file
-- Works in any browser
-- All processing happens locally (no server)
-- Supports .xlsx, .xls, .csv
+- **Drag-drop file upload** - Simple, intuitive interface
+- **Auto-processes on upload** - Instant filtering
+- **Shows filtered row count** - Original, filtered, and removed row counts
+- **Downloads as Excel file** - Fully formatted with:
+  - ✅ White fill and Arial 12pt bold text
+  - ✅ Borders on all cells
+  - ✅ Past dates highlighted in YELLOW
+  - ✅ Page breaks inserted for each new day
+  - ✅ Sorted by DockDate (today through +7 days, plus all past dates)
+- **Works in any browser** - No installation needed
+- **All processing happens locally** - No server uploads, no tracking
+- **Supports .xlsx, .xls, .csv** - Works with all Excel formats
 
 ## How to Deploy
 
