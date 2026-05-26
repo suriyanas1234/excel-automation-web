@@ -26,7 +26,7 @@
             background: white;
             border-radius: 12px;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            max-width: 600px;
+            max-width: 500px;
             width: 100%;
             padding: 40px;
         }
@@ -44,14 +44,11 @@
             font-size: 14px;
         }
 
-        .upload-section {
-            margin-bottom: 30px;
-        }
-
         .file-input-wrapper {
             position: relative;
             display: inline-block;
             width: 100%;
+            margin-bottom: 20px;
         }
 
         .file-input-wrapper input[type="file"] {
@@ -60,7 +57,7 @@
 
         .file-label {
             display: block;
-            padding: 20px;
+            padding: 30px;
             background: #f5f5f5;
             border: 2px dashed #667eea;
             border-radius: 8px;
@@ -82,60 +79,14 @@
             color: #666;
         }
 
-        .filter-section {
-            background: #f9f9f9;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            border-left: 4px solid #667eea;
-        }
-
-        .filter-section h3 {
-            color: #333;
-            margin-bottom: 15px;
-            font-size: 16px;
-        }
-
-        .filter-group {
-            margin-bottom: 15px;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 8px;
-            color: #555;
-            font-weight: 500;
-            font-size: 14px;
-        }
-
-        input[type="text"],
-        input[type="date"],
-        select {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            font-size: 14px;
-            transition: border-color 0.3s ease;
-        }
-
-        input[type="text"]:focus,
-        input[type="date"]:focus,
-        select:focus {
-            outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        }
-
         .button-group {
             display: flex;
             gap: 10px;
-            margin-top: 25px;
         }
 
         button {
             flex: 1;
-            padding: 12px;
+            padding: 14px;
             border: none;
             border-radius: 6px;
             font-size: 16px;
@@ -144,31 +95,14 @@
             transition: all 0.3s ease;
         }
 
-        .btn-process {
+        .btn-download {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
         }
 
-        .btn-process:hover {
+        .btn-download:hover:not(:disabled) {
             transform: translateY(-2px);
             box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
-        }
-
-        .btn-process:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .btn-download {
-            background: #4CAF50;
-            color: white;
-        }
-
-        .btn-download:hover {
-            background: #45a049;
-            transform: translateY(-2px);
-            box-shadow: 0 10px 25px rgba(76, 175, 80, 0.3);
         }
 
         .btn-download:disabled {
@@ -218,8 +152,8 @@
 
         .results-section {
             display: none;
-            margin-top: 30px;
-            padding-top: 30px;
+            margin-top: 25px;
+            padding-top: 25px;
             border-top: 2px solid #eee;
         }
 
@@ -230,6 +164,7 @@
         .results-section h3 {
             color: #333;
             margin-bottom: 15px;
+            font-size: 14px;
         }
 
         .result-stat {
@@ -238,60 +173,12 @@
             padding: 10px 0;
             border-bottom: 1px solid #eee;
             color: #666;
-            font-size: 14px;
+            font-size: 13px;
         }
 
         .result-stat span:last-child {
             font-weight: 600;
             color: #333;
-        }
-
-        .table-container {
-            margin-top: 20px;
-            max-height: 300px;
-            overflow-y: auto;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 13px;
-        }
-
-        th {
-            background: #f5f5f5;
-            padding: 10px;
-            text-align: left;
-            font-weight: 600;
-            border-bottom: 2px solid #ddd;
-            position: sticky;
-            top: 0;
-        }
-
-        td {
-            padding: 8px 10px;
-            border-bottom: 1px solid #eee;
-        }
-
-        tr:hover {
-            background: #f9f9f9;
-        }
-
-        .info-box {
-            background: #e3f2fd;
-            border-left: 4px solid #2196F3;
-            padding: 15px;
-            border-radius: 4px;
-            margin-bottom: 20px;
-            font-size: 14px;
-            color: #1565c0;
-        }
-
-        .info-box strong {
-            display: block;
-            margin-bottom: 5px;
         }
 
         @media (max-width: 600px) {
@@ -308,75 +195,33 @@
             }
 
             .file-label {
-                padding: 15px;
+                padding: 20px;
             }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>📊 Excel Production Filter</h1>
-        <p class="subtitle">Upload, filter, and download your production data</p>
-
-        <div class="info-box">
-            <strong>✨ Single Unified Filter</strong>
-            Filters rows based on ProductionStatus, Hold Status, and Date Range
-        </div>
+        <h1>📊 Excel Filter</h1>
+        <p class="subtitle">Upload, filter, and download</p>
 
         <div class="status" id="status"></div>
 
-        <div class="upload-section">
-            <div class="file-input-wrapper">
-                <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" />
-                <label for="fileInput" class="file-label">
-                    📁 Click to upload or drag & drop your Excel file
-                    <div class="file-name">Supported: .xlsx, .xls, .csv</div>
-                </label>
-            </div>
-        </div>
-
-        <div class="filter-section">
-            <h3>🔍 Filter Settings</h3>
-
-            <div class="filter-group">
-                <label for="productionStatus">Production Status (leave blank for any)</label>
-                <select id="productionStatus">
-                    <option value="">Any Status</option>
-                    <option value="Released">Released</option>
-                    <option value="">Blank/Empty</option>
-                    <option value="On Hold">On Hold</option>
-                    <option value="In Progress">In Progress</option>
-                </select>
-            </div>
-
-            <div class="filter-group">
-                <label for="holdStatus">Hold Status</label>
-                <select id="holdStatus">
-                    <option value="any">Any Hold Status</option>
-                    <option value="blank">No Hold (Blank)</option>
-                    <option value="held">On Hold (Has Description)</option>
-                </select>
-            </div>
-
-            <div class="filter-group">
-                <label for="dateRange">Date Range (keep rows from today through)</label>
-                <input type="date" id="dateRange" />
-            </div>
-
-            <div class="filter-group">
-                <label for="department">Department (optional)</label>
-                <input type="text" id="department" placeholder="e.g., MATL ISSUE EXT" />
-            </div>
+        <div class="file-input-wrapper">
+            <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" />
+            <label for="fileInput" class="file-label">
+                📁 Click or drag & drop Excel file
+                <div class="file-name">Supported: .xlsx, .xls, .csv</div>
+            </label>
         </div>
 
         <div class="button-group">
-            <button class="btn-process" id="processBtn" disabled>⚙️ Process File</button>
-            <button class="btn-download" id="downloadBtn" disabled>⬇️ Download Result</button>
+            <button class="btn-download" id="downloadBtn" disabled>⬇️ Download</button>
             <button class="btn-reset" id="resetBtn">🔄 Reset</button>
         </div>
 
         <div class="results-section" id="resultsSection">
-            <h3>📈 Results</h3>
+            <h3>✅ Processing Complete</h3>
             <div class="result-stat">
                 <span>Original Rows:</span>
                 <span id="originalRows">0</span>
@@ -388,18 +233,6 @@
             <div class="result-stat">
                 <span>Rows Removed:</span>
                 <span id="removedRows">0</span>
-            </div>
-            <div class="result-stat">
-                <span>Columns Kept:</span>
-                <span id="keptColumns">0</span>
-            </div>
-
-            <h3 style="margin-top: 20px; margin-bottom: 15px;">📋 Preview (First 10 rows)</h3>
-            <div class="table-container">
-                <table id="previewTable">
-                    <thead></thead>
-                    <tbody></tbody>
-                </table>
             </div>
         </div>
     </div>
