@@ -1,99 +1,174 @@
-#!/usr/bin/env powershell
-# 🚀 DEPLOY.ps1 - Automated GitHub Deployment Script
-# Run this script and enter your GitHub username to complete deployment
+# ============================================
+# EXCEL FILTER - DEPLOY TO GITHUB
+# ============================================
+# 
+# This script pushes your web app to GitHub
+# and sets it up for GitHub Pages hosting
+#
+# BEFORE RUNNING THIS SCRIPT:
+# ============================================
+# 1. Go to https://github.com/new
+# 2. Create a repository named: excel-automation-web
+# 3. Make sure you select PUBLIC (not private)
+# 4. DO NOT check "Initialize with README"
+# 5. Click "Create repository"
+# 6. Copy your GitHub username from the URL
+#    (it will show: https://github.com/YOUR-USERNAME/excel-automation-web)
+# 7. Come back here and run this script
+#
+# ============================================
 
-# Remove the old incorrect remote
-Write-Host "🔧 Cleaning up old remote..." -ForegroundColor Yellow
-git remote remove origin
+Write-Host ""
+Write-Host "╔══════════════════════════════════════════╗" -ForegroundColor Cyan
+Write-Host "║     EXCEL FILTER - GITHUB DEPLOYMENT    ║" -ForegroundColor Cyan
+Write-Host "╚══════════════════════════════════════════╝" -ForegroundColor Cyan
+Write-Host ""
 
-# Ask for GitHub username
-Write-Host "`n📝 Enter your GitHub username (the part after github.com/)" -ForegroundColor Cyan
-$username = Read-Host "GitHub Username"
+# Check if repo already has an origin remote
+Write-Host "Step 1: Checking git setup..." -ForegroundColor Yellow
+$remoteCheck = git remote -v 2>$null | Select-String "origin"
+if ($remoteCheck) {
+    Write-Host "  ⚠️  Found existing remote. Removing it..." -ForegroundColor Yellow
+    git remote remove origin 2>$null
+    Write-Host "  ✓ Removed old remote" -ForegroundColor Green
+}
 
+Write-Host ""
+Write-Host "Step 2: Enter your GitHub username" -ForegroundColor Yellow
+Write-Host "  (This is the part after github.com/ in your profile URL)" -ForegroundColor Gray
+Write-Host ""
+$username = Read-Host "  Enter your GitHub username"
+
+# Validate username
 if ([string]::IsNullOrWhiteSpace($username)) {
-    Write-Host "❌ Error: Username cannot be empty" -ForegroundColor Red
+    Write-Host ""
+    Write-Host "❌ ERROR: Username cannot be empty!" -ForegroundColor Red
+    Write-Host "   Please run this script again and enter your username." -ForegroundColor Red
     exit 1
 }
 
-if ($username -eq "YOUR-USERNAME") {
-    Write-Host "❌ Error: Enter your REAL GitHub username, not the placeholder" -ForegroundColor Red
+if ($username -eq "YOUR-USERNAME" -or $username -eq "YOUR-GITHUB-USERNAME") {
+    Write-Host ""
+    Write-Host "❌ ERROR: You entered the placeholder, not your real username!" -ForegroundColor Red
+    Write-Host "   Use your actual GitHub username (like 'john-doe' or 'alice')" -ForegroundColor Red
     exit 1
 }
 
-Write-Host "`n✓ Username: $username" -ForegroundColor Green
+Write-Host ""
+Write-Host "  ✓ Username: $username" -ForegroundColor Green
 
-# Verify repo exists on GitHub
-Write-Host "`n🔍 Verifying repository exists on GitHub..." -ForegroundColor Yellow
-$repoUrl = "https://github.com/$username/excel-automation-web"
-$testUrl = "https://github.com/$username/excel-automation-web/settings"
+# Show confirmation
+Write-Host ""
+Write-Host "Step 3: Verify repository exists" -ForegroundColor Yellow
+Write-Host ""
+Write-Host "  Make sure you have already:" -ForegroundColor Cyan
+Write-Host "    ✓ Created repo at https://github.com/new" -ForegroundColor Gray
+Write-Host "    ✓ Named it: excel-automation-web" -ForegroundColor Gray
+Write-Host "    ✓ Set it to PUBLIC (not private)" -ForegroundColor Gray
+Write-Host "    ✓ Did NOT initialize with README" -ForegroundColor Gray
+Write-Host ""
+Write-Host "  Your repo should be at:" -ForegroundColor Cyan
+Write-Host "    https://github.com/$username/excel-automation-web" -ForegroundColor Cyan
+Write-Host ""
 
-Write-Host "Expected repo URL: $repoUrl" -ForegroundColor Cyan
-Write-Host "`n⚠️  Make sure:"
-Write-Host "  1. You created the repo at: https://github.com/new"
-Write-Host "  2. Named it: excel-automation-web"
-Write-Host "  3. Set it to PUBLIC"
-Write-Host "  4. Did NOT initialize with README or .gitignore"
-
-$confirm = Read-Host "`nContinue? (yes/no)"
-if ($confirm -ne "yes") {
-    Write-Host "❌ Deployment cancelled" -ForegroundColor Red
-    exit 1
+$confirm = Read-Host "  Did you create the GitHub repository? (yes/no)"
+if ($confirm -ne "yes" -and $confirm -ne "y") {
+    Write-Host ""
+    Write-Host "⏸️  Please create the repository first at:" -ForegroundColor Yellow
+    Write-Host "   https://github.com/new" -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "   Then run this script again." -ForegroundColor Yellow
+    exit 0
 }
 
-# Add the correct remote
-Write-Host "`n🔗 Adding remote repository..." -ForegroundColor Yellow
+# Add remote
+Write-Host ""
+Write-Host "Step 4: Connecting to GitHub..." -ForegroundColor Yellow
 $gitUrl = "https://github.com/$username/excel-automation-web.git"
-Write-Host "URL: $gitUrl" -ForegroundColor Cyan
+Write-Host "  URL: $gitUrl" -ForegroundColor Gray
 
 try {
     git remote add origin $gitUrl
-    Write-Host "✓ Remote added successfully" -ForegroundColor Green
+    Write-Host "  ✓ Remote added" -ForegroundColor Green
 } catch {
-    Write-Host "❌ Error adding remote: $_" -ForegroundColor Red
+    Write-Host "  ❌ Error adding remote" -ForegroundColor Red
+    Write-Host "     $_" -ForegroundColor Red
     exit 1
 }
 
-# Ensure on main branch
-Write-Host "`n🌿 Setting up main branch..." -ForegroundColor Yellow
+# Setup branch
+Write-Host ""
+Write-Host "Step 5: Setting up branch..." -ForegroundColor Yellow
 git branch -M main
-Write-Host "✓ On main branch" -ForegroundColor Green
+Write-Host "  ✓ On main branch" -ForegroundColor Green
 
 # Push to GitHub
-Write-Host "`n📤 Pushing code to GitHub (this may take a moment)..." -ForegroundColor Yellow
+Write-Host ""
+Write-Host "Step 6: Pushing code to GitHub..." -ForegroundColor Yellow
+Write-Host "  (This may take 10-30 seconds...)" -ForegroundColor Gray
+Write-Host ""
+
 try {
-    git push -u origin main
-    Write-Host "`n✅ PUSHED SUCCESSFULLY!" -ForegroundColor Green
+    git push -u origin main 2>&1
+    Write-Host ""
+    Write-Host "  ✓ Code pushed successfully!" -ForegroundColor Green
 } catch {
-    Write-Host "`n❌ Push failed: $_" -ForegroundColor Red
-    Write-Host "Error details above. Check TROUBLESHOOTING_GIT_PUSH.md for help." -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "  ❌ Error pushing to GitHub" -ForegroundColor Red
+    Write-Host "     $_" -ForegroundColor Red
+    Write-Host ""
+    Write-Host "  Possible reasons:" -ForegroundColor Yellow
+    Write-Host "    • Repository doesn't exist at https://github.com/$username/excel-automation-web" -ForegroundColor Gray
+    Write-Host "    • Repository is set to PRIVATE (must be PUBLIC)" -ForegroundColor Gray
+    Write-Host "    • Wrong GitHub username" -ForegroundColor Gray
     exit 1
 }
 
-# Success message
-Write-Host "`n" -ForegroundColor Green
-Write-Host "╔════════════════════════════════════════════╗" -ForegroundColor Green
-Write-Host "║  ✅ DEPLOYMENT SUCCESSFUL!                ║" -ForegroundColor Green
-Write-Host "╚════════════════════════════════════════════╝" -ForegroundColor Green
-Write-Host "`nYour files are now on GitHub!" -ForegroundColor Cyan
-Write-Host "Repository: $repoUrl" -ForegroundColor Cyan
+# Success!
+Write-Host ""
+Write-Host "╔══════════════════════════════════════════╗" -ForegroundColor Green
+Write-Host "║  ✅ CODE PUSHED TO GITHUB!              ║" -ForegroundColor Green
+Write-Host "╚══════════════════════════════════════════╝" -ForegroundColor Green
+Write-Host ""
 
-Write-Host "`n📍 Next: Enable GitHub Pages"
-Write-Host "  1. Go to: $testUrl" -ForegroundColor Yellow
-Write-Host "  2. Scroll to 'Pages' section"
-Write-Host "  3. Branch: main"
-Write-Host "  4. Folder: / (root)"
-Write-Host "  5. Click Save"
-Write-Host "  6. Wait 1-2 minutes"
-
-Write-Host "`n🌐 Your live site will be:"
+Write-Host "NEXT STEPS - Enable GitHub Pages:" -ForegroundColor Yellow
+Write-Host ""
+Write-Host "  1. Go to your repository:" -ForegroundColor Cyan
+Write-Host "     https://github.com/$username/excel-automation-web" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "  2. Click Settings (⚙️ icon)" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "  3. Scroll down to 'Pages' section" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "  4. Under 'Source':" -ForegroundColor Cyan
+Write-Host "     • Branch: select 'main'" -ForegroundColor Gray
+Write-Host "     • Folder: select '/ (root)'" -ForegroundColor Gray
+Write-Host ""
+Write-Host "  5. Click 'Save'" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "  6. Wait 1-2 minutes for deployment" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "  7. Your site will be live at:" -ForegroundColor Cyan
 $liveUrl = "https://$username.github.io/excel-automation-web/"
-Write-Host "  $liveUrl" -ForegroundColor Cyan
+Write-Host "     $liveUrl" -ForegroundColor Cyan
+Write-Host ""
 
-Write-Host "`n📋 Checklist:"
-Write-Host "  ☐ Files pushed to GitHub" -ForegroundColor Green
-Write-Host "  ☐ GitHub Pages enabled"
-Write-Host "  ☐ Waited 1-2 minutes"
-Write-Host "  ☐ Visited live URL"
-Write-Host "  ☐ Tested file upload feature"
+Write-Host "WHAT TO DO NOW:" -ForegroundColor Yellow
+Write-Host ""
+Write-Host "  ☐ Verify files on GitHub" -ForegroundColor Gray
+Write-Host "    Visit: https://github.com/$username/excel-automation-web" -ForegroundColor Gray
+Write-Host "    You should see: index.html, filter.js, README.md, etc." -ForegroundColor Gray
+Write-Host ""
+Write-Host "  ☐ Enable GitHub Pages (follow steps above)" -ForegroundColor Gray
+Write-Host ""
+Write-Host "  ☐ Test your live site" -ForegroundColor Gray
+Write-Host "    After 1-2 minutes, visit: $liveUrl" -ForegroundColor Gray
+Write-Host ""
+Write-Host "  ☐ Try uploading an Excel file to test" -ForegroundColor Gray
+Write-Host ""
 
-Write-Host "`n🎉 Done!" -ForegroundColor Green
+Write-Host "╔══════════════════════════════════════════╗" -ForegroundColor Green
+Write-Host "║  🚀 YOU'RE ALL SET!                     ║" -ForegroundColor Green
+Write-Host "╚══════════════════════════════════════════╝" -ForegroundColor Green
+Write-Host ""
+
