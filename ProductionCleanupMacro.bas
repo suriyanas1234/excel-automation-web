@@ -52,9 +52,9 @@ Sub CleanAndOrganizeWorksheet()
     Call Step3_RemoveHoldRows(ws)
     Call Step4_FilterByDockDate(ws)
     Call Step5_SortByDockDate(ws)
-    Call Step6_FormatUsedRange(ws)
-    Call Step7_HighlightPastDockDates(ws)
-    Call Step8_InsertPageBreaksByDay(ws)
+    Call Step7_HighlightPastDockDates(ws)  ' Highlight past dates in yellow FIRST
+    Call Step6_FormatUsedRange(ws)  ' Format while preserving yellow highlighting
+    Call Step8_InsertPageBreaksByDay(ws)  ' Insert page breaks by day
     
     Application.ScreenUpdating = True
     Application.Calculation = xlCalculationAutomatic
@@ -384,6 +384,7 @@ Sub Step5_SortByDockDate(ws As Worksheet)
     Dim lastRow As Long
     Dim dockCol As Long
     Dim dataRange As Range
+    Dim lastCol As Long
     
     dockCol = FindColumnByHeader(ws, "DockDate")
     If dockCol = 0 Then Exit Sub
@@ -391,13 +392,20 @@ Sub Step5_SortByDockDate(ws As Worksheet)
     lastRow = ws.Cells(ws.Rows.Count, 1).End(xlUp).Row
     If lastRow < 2 Then Exit Sub
     
-    Set dataRange = ws.Range(ws.Cells(1, 1), ws.Cells(lastRow, ws.Cells(1, ws.Columns.Count).End(xlToLeft).Column))
+    ' Find last column with data
+    lastCol = ws.Cells(1, ws.Columns.Count).End(xlToLeft).Column
     
-    ws.Sort.SortFields.Clear
+    ' Create range for sorting (header + all data)
+    Set dataRange = ws.Range(ws.Cells(1, 1), ws.Cells(lastRow, lastCol))
+    
+    ' Sort ascending by DockDate
     With ws.Sort
+        .SortFields.Clear
         .SetRange dataRange
         .SortFields.Add Key:=ws.Columns(dockCol), SortOn:=xlSortOnValues, Order:=xlAscending
         .Header = xlYes
+        .MatchCase = False
+        .Orientation = xlTopToBottom
         .Apply
     End With
     
@@ -407,16 +415,20 @@ ErrorHandler:
 End Sub
 
 ' ============================================================
-' STEP 6: Format all cells
+' STEP 6: Format all cells (preserve highlighting)
 ' ============================================================
 Sub Step6_FormatUsedRange(ws As Worksheet)
     On Error GoTo ErrorHandler
     
     Dim usedRange As Range
-    Set usedRange = ws.UsedRange
+    Dim row As Long
+    Dim lastRow As Long
+    Dim cell As Range
     
-    ' Apply white fill
-    usedRange.Interior.Color = RGB(255, 255, 255)
+    lastRow = ws.Cells(ws.Rows.Count, 1).End(xlUp).Row
+    
+    ' Format all cells
+    Set usedRange = ws.UsedRange
     
     ' Set font to Arial, size 12, bold
     With usedRange.Font
@@ -432,6 +444,16 @@ Sub Step6_FormatUsedRange(ws As Worksheet)
         .Weight = xlThin
     End With
     
+    ' Apply white fill to all cells except highlighted ones
+    For row = 1 To lastRow
+        For Each cell In ws.Rows(row).Cells
+            ' If cell doesn't have yellow fill, make it white
+            If cell.Interior.Color <> RGB(255, 255, 0) Then
+                cell.Interior.Color = RGB(255, 255, 255)
+            End If
+        Next cell
+    Next row
+    
     Exit Sub
 ErrorHandler:
     ' Continue on error
@@ -445,22 +467,34 @@ Sub Step7_HighlightPastDockDates(ws As Worksheet)
     
     Dim lastRow As Long
     Dim row As Long
-    Dim dockDate As Variant
+    Dim dockDate As Date
     Dim dockCol As Long
+    Dim todayDate As Date
+    Dim cellValue As String
     
     dockCol = FindColumnByHeader(ws, "DockDate")
     If dockCol = 0 Then Exit Sub
     
     lastRow = ws.Cells(ws.Rows.Count, 1).End(xlUp).Row
+    todayDate = Date
     
     For row = 2 To lastRow
-        dockDate = ws.Cells(row, dockCol).Value
+        cellValue = Trim(CStr(ws.Cells(row, dockCol).Value))
         
-        If IsDate(dockDate) Then
-            If CLng(dockDate) < CLng(Date) Then
+        ' Try to convert to date
+        If cellValue <> "" Then
+            On Error Resume Next
+            dockDate = CLng(CDate(cellValue))
+            On Error GoTo ErrorHandler
+            
+            ' If conversion was successful and date is in the past
+            If dockDate < todayDate Then
                 ' Highlight entire row in yellow
-                ws.Rows(row).Interior.Color = RGB(255, 255, 0)
-                ws.Rows(row).Font.Bold = True
+                With ws.Rows(row)
+                    .Interior.Color = RGB(255, 255, 0)
+                    .Font.Color = RGB(0, 0, 0)
+                    .Font.Bold = True
+                End With
             End If
         End If
     Next row
@@ -478,10 +512,11 @@ Sub Step8_InsertPageBreaksByDay(ws As Worksheet)
     
     Dim lastRow As Long
     Dim row As Long
-    Dim currentDate As Date
-    Dim previousDate As Date
+    Dim currentDate As String
+    Dim previousDate As String
     Dim dockCol As Long
-    Dim dockValue As Variant
+    Dim dockValue As String
+    Dim breakRow As Long
     
     dockCol = FindColumnByHeader(ws, "DockDate")
     If dockCol = 0 Then Exit Sub
@@ -489,18 +524,24 @@ Sub Step8_InsertPageBreaksByDay(ws As Worksheet)
     lastRow = ws.Cells(ws.Rows.Count, 1).End(xlUp).Row
     If lastRow < 3 Then Exit Sub
     
-    ' Remove existing page breaks
-    ws.PageSetup.PrintArea = ""
+    ' Remove existing page breaks first
+    On Error Resume Next
     ws.HPageBreaks.Delete
+    On Error GoTo ErrorHandler
     
-    previousDate = CLng(ws.Cells(2, dockCol).Value)
+    ' Get first date
+    previousDate = Format(ws.Cells(2, dockCol).Value, "yyyy-mm-dd")
     
-    ' Insert page break before each new date (from bottom to top)
+    ' Insert page breaks from bottom to top to avoid row shifting
     For row = lastRow Down To 3
-        dockValue = ws.Cells(row, dockCol).Value
+        dockValue = CStr(ws.Cells(row, dockCol).Value)
         
-        If IsDate(dockValue) Then
-            currentDate = CLng(dockValue)
+        If Trim(dockValue) <> "" Then
+            On Error Resume Next
+            currentDate = Format(CDate(dockValue), "yyyy-mm-dd")
+            On Error GoTo ErrorHandler
+            
+            ' If date changed, insert page break before this row
             If currentDate <> previousDate Then
                 ws.HPageBreaks.Add Before:=ws.Rows(row)
                 previousDate = currentDate
