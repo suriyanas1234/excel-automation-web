@@ -51,6 +51,26 @@ A simple web app to filter production Excel files.
 - `filter.js` - Filter logic
 - `DEPLOY.ps1` - Automated deployment script
 - `FilterMacro.bas` - Original Excel macro
+- `ProductionCleanupMacro.bas` - **NEW** Comprehensive cleanup macro with formatting, filtering, and page breaks
+
+## Excel Macro (ProductionCleanupMacro.bas)
+
+Complete Excel macro that cleans and organizes production data:
+
+**What it does:**
+- Formats: White fill, Arial 12pt bold, borders on all cells
+- Columns: Keeps only 43 required columns
+- Filters: By ProductionStatus, Department, WOHoldDescription, and DockDate
+- Sorting: Organizes by DockDate (today ± 7 days + past dates)
+- Highlights: Past-due dates in yellow
+- Page breaks: One per day for printing/organizing
+- Error handling: Validates headers, graceful fallbacks
+
+**How to use:**
+1. Open your Excel file
+2. Press `Alt+F11` → File → Import File → select `ProductionCleanupMacro.bas`
+3. Press `Alt+F8` → Select `CleanAndOrganizeWorksheet` → Click Run
+4. Follow the on-screen messages
 
 ## Privacy
 
