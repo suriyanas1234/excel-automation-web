@@ -1,0 +1,17 @@
+node_modules/
+.DS_Store
+.env
+.env.local
+*.log
+dist/
+build/
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.c9/
+*.sublime-workspace
+.cache/
