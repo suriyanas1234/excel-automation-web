@@ -9,6 +9,10 @@ Option Explicit
 '    3. Press Alt+F8 → Run "RunProductionAutomation"
 ' ============================================================
 
+Sub Auto_Open()
+    EnsureProductionAutomationButton
+End Sub
+
 Sub RunProductionAutomation()
     Application.ScreenUpdating = False
     Application.Calculation = xlCalculationManual
@@ -43,6 +47,8 @@ Sub RunProductionAutomation()
     Application.ScreenUpdating = True
     Application.Calculation = xlCalculationAutomatic
     Application.EnableEvents = True
+
+    EnsureProductionAutomationButton
 
     MsgBox "Done! Automation complete.", vbInformation, "Production Automation"
 End Sub
@@ -369,6 +375,8 @@ Sub Step5_FormatAllCells(ws As Worksheet)
     Dim lastRow As Long, lastCol As Long
     lastRow = ws.Cells(ws.Rows.Count, 1).End(xlUp).Row
     lastCol = ws.Cells(1, ws.Columns.Count).End(xlToLeft).Column
+    Dim cdCol As Long
+    cdCol = FindColumn(ws, "CurrentDepartment")
 
     Dim rng As Range
     Set rng = ws.Range(ws.Cells(1, 1), ws.Cells(lastRow, lastCol))
@@ -402,6 +410,17 @@ Sub Step5_FormatAllCells(ws As Worksheet)
         .HorizontalAlignment = xlLeft
         .VerticalAlignment   = xlCenter
     End With
+
+    ' Color each data row based on CurrentDepartment
+    Dim r As Long
+    For r = 2 To lastRow
+        If cdCol > 0 Then
+            ws.Range(ws.Cells(r, 1), ws.Cells(r, lastCol)).Font.Color = _
+                GetDepartmentTextColor(ws.Cells(r, cdCol).Value)
+        Else
+            ws.Range(ws.Cells(r, 1), ws.Cells(r, lastCol)).Font.Color = RGB(255, 0, 0)
+        End If
+    Next r
 
     ' Auto-fit columns (cap at 40 chars wide)
     Dim c As Long
@@ -576,3 +595,73 @@ Function CheckAllHeaders(ws As Worksheet) As String
     
     CheckAllHeaders = missing
 End Function
+
+' ============================================================
+'  HELPER – Department text color for whole row
+'           Blue for listed production departments,
+'           black for final/test/ship departments,
+'           red for anything else
+' ============================================================
+Function GetDepartmentTextColor(deptValue As Variant) As Long
+    Dim dept As String
+    dept = NormalizeDepartment(deptValue)
+
+    Select Case dept
+        Case "inkjet", "legend bake", "sm pumice", "sm coat", "sm img", _
+             "sm dev", "sm bake", "uv bump", "enipig", "enig"
+            GetDepartmentTextColor = RGB(0, 0, 255)
+        Case "electrical test", "rout", "bevil", "final clean", _
+             "final insp", "final qa", "pack and ship"
+            GetDepartmentTextColor = RGB(0, 0, 0)
+        Case Else
+            GetDepartmentTextColor = RGB(255, 0, 0)
+    End Select
+End Function
+
+Function NormalizeDepartment(deptValue As Variant) As String
+    Dim dept As String
+    dept = LCase(Trim(CStr(deptValue)))
+
+    Do While Len(dept) > 0 And (Right$(dept, 1) = "}" Or Right$(dept, 1) = " ")
+        dept = Left$(dept, Len(dept) - 1)
+    Loop
+
+    Do While InStr(dept, "  ") > 0
+        dept = Replace(dept, "  ", " ")
+    Loop
+
+    NormalizeDepartment = Trim(dept)
+End Function
+
+' ============================================================
+'  HELPER – Add a worksheet button that runs the macro
+' ============================================================
+Sub EnsureProductionAutomationButton()
+    Dim ws As Worksheet
+    If TypeName(ActiveSheet) = "Worksheet" Then
+        Set ws = ActiveSheet
+    Else
+        Set ws = ThisWorkbook.Worksheets(1)
+    End If
+
+    Dim btnName As String
+    btnName = "btnRunProductionAutomation"
+
+    On Error Resume Next
+    ws.Shapes(btnName).Delete
+    On Error GoTo 0
+
+    Dim btn As Shape
+    Set btn = ws.Shapes.AddShape(msoShapeRoundedRectangle, 10, 10, 180, 32)
+    btn.Name = btnName
+    btn.OnAction = "'" & ThisWorkbook.Name & "'!RunProductionAutomation"
+    btn.TextFrame.Characters.Text = "Run Production Automation"
+    btn.TextFrame.Characters.Font.Name = "Arial"
+    btn.TextFrame.Characters.Font.Size = 11
+    btn.TextFrame.Characters.Font.Bold = True
+    btn.TextFrame.Characters.Font.Color = RGB(255, 255, 255)
+    btn.TextFrame.HorizontalAlignment = xlHAlignCenter
+    btn.TextFrame.VerticalAlignment = xlVAlignCenter
+    btn.Fill.ForeColor.RGB = RGB(102, 126, 234)
+    btn.Line.ForeColor.RGB = RGB(102, 126, 234)
+End Sub
