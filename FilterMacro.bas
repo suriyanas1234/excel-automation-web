@@ -1,12 +1,11 @@
-Attribute VB_Name = "ProductionAutomation"
 Option Explicit
 
 ' ============================================================
 '  PRODUCTION AUTOMATION
 '  How to use:
 '    1. Open your workbook in Excel
-'    2. Press Alt+F11 → File → Import File → select this .bas
-'    3. Press Alt+F8 → Run "RunProductionAutomation"
+'    2. Press Alt+F11 ? File ? Import File ? select this .bas
+'    3. Press Alt+F8 ? Run "RunProductionAutomation"
 ' ============================================================
 
 Sub Auto_Open()
@@ -18,12 +17,12 @@ Sub RunProductionAutomation()
     Application.Calculation = xlCalculationManual
     Application.EnableEvents = False
 
-    Dim ws As Worksheet
-    Set ws = ActiveSheet
+    Dim sourceWs As Worksheet
+    Set sourceWs = ActiveSheet
 
-    ' Step 0: Check for all required headers
+    ' Step 0: Check for all required headers on source sheet
     Dim missingHeaders As String
-    missingHeaders = CheckAllHeaders(ws)
+    missingHeaders = CheckAllHeaders(sourceWs)
     If missingHeaders <> "" Then
         Application.ScreenUpdating = True
         Application.Calculation = xlCalculationAutomatic
@@ -32,8 +31,19 @@ Sub RunProductionAutomation()
         Exit Sub
     End If
 
-    MsgBox "Starting Production Automation on sheet: " & ws.Name & vbCrLf & _
-           "Steps: Column filter → Status filter → Hold filter → Date filter → Sort → Format → Page breaks", _
+    ' Create a copy of the raw data sheet to process
+    Dim ws As Worksheet
+    sourceWs.Copy After:=sourceWs
+    Set ws = ActiveSheet
+    
+    ' Give it a clean name
+    On Error Resume Next
+    ws.name = "Production Report (" & Format(Now, "hh-mm-ss") & ")"
+    On Error GoTo 0
+
+    MsgBox "Starting Production Automation." & vbCrLf & _
+           "Processing on new sheet: " & ws.name & vbCrLf & _
+           "Steps: Column filter ? Status filter ? Hold filter ? Date filter ? Sort ? Format ? Page breaks", _
            vbInformation, "Production Automation"
 
     Call Step1_KeepRequiredColumns(ws)
@@ -54,19 +64,19 @@ Sub RunProductionAutomation()
 End Sub
 
 ' ============================================================
-'  STEP 1 – Keep only required columns, delete everything else
+'  STEP 1 ï¿½ Keep only required columns, delete everything else
 ' ============================================================
 Sub Step1_KeepRequiredColumns(ws As Worksheet)
     Dim allReq(50) As String
-    allReq(1)  = "WONumber"
-    allReq(2)  = "PriorityCode"
-    allReq(3)  = "SoldTo"
-    allReq(4)  = "PartNumber"
-    allReq(5)  = "CustomerPartNumber"
-    allReq(6)  = "Revision"
-    allReq(7)  = "OraclePartNumber"
-    allReq(8)  = "WOScheduleDate"
-    allReq(9)  = "SalesOrderQuantity"
+    allReq(1) = "WONumber"
+    allReq(2) = "PriorityCode"
+    allReq(3) = "SoldTo"
+    allReq(4) = "PartNumber"
+    allReq(5) = "CustomerPartNumber"
+    allReq(6) = "Revision"
+    allReq(7) = "OraclePartNumber"
+    allReq(8) = "WOScheduleDate"
+    allReq(9) = "SalesOrderQuantity"
     allReq(10) = "ReservedQty"
     allReq(11) = "CurrentDepartment"
     allReq(12) = "NextProcess"
@@ -114,7 +124,7 @@ Sub Step1_KeepRequiredColumns(ws As Worksheet)
     Dim c As Long, i As Integer
     For c = lastCol To 1 Step -1
         Dim hdr As String
-        hdr = Trim(ws.Cells(1, c).Value)
+        hdr = Trim(ws.Cells(1, c).value)
         Dim keep As Boolean
         keep = False
         For i = 1 To 47
@@ -134,7 +144,7 @@ Sub Step1_KeepRequiredColumns(ws As Worksheet)
     lastCol = ws.Cells(1, ws.Columns.Count).End(xlToLeft).Column
     For i = 1 To 47
         For c = targetCol To lastCol
-            If LCase(Trim(ws.Cells(1, c).Value)) = LCase(allReq(i)) Then
+            If LCase(Trim(ws.Cells(1, c).value)) = LCase(allReq(i)) Then
                 If c <> targetCol Then
                     ws.Columns(c).Cut
                     ws.Columns(targetCol).Insert Shift:=xlToRight
@@ -147,7 +157,7 @@ Sub Step1_KeepRequiredColumns(ws As Worksheet)
 End Sub
 
 ' ============================================================
-'  STEP 2 – ProductionStatus filter:
+'  STEP 2 ï¿½ ProductionStatus filter:
 '    Keep if: ProductionStatus is blank OR ProductionStatus = "Released"
 '    If ProductionStatus is blank, CurrentDepartment must be "MATL ISSUE EXT"
 ' ============================================================
@@ -163,22 +173,22 @@ Sub Step2_FilterProductionStatus(ws As Worksheet)
     Dim r As Long
     For r = lastRow To 2 Step -1
         Dim psVal As String
-        psVal = Trim(ws.Cells(r, psCol).Value)
+        psVal = Trim(ws.Cells(r, psCol).value)
         
         Dim keepRow As Boolean
         keepRow = False
         
         If psVal = "" Then
-            ' ProductionStatus is blank – check CurrentDepartment
+            ' ProductionStatus is blank ï¿½ check CurrentDepartment
             If cdCol > 0 Then
                 Dim cdVal As String
-                cdVal = Trim(ws.Cells(r, cdCol).Value)
+                cdVal = Trim(ws.Cells(r, cdCol).value)
                 If UCase(cdVal) = "MATL ISSUE EXT" Then
                     keepRow = True
                 End If
             End If
         ElseIf UCase(psVal) = "RELEASED" Then
-            ' ProductionStatus is "Released" – keep
+            ' ProductionStatus is "Released" ï¿½ keep
             keepRow = True
         End If
         
@@ -189,7 +199,7 @@ Sub Step2_FilterProductionStatus(ws As Worksheet)
 End Sub
 
 ' ============================================================
-'  STEP 3 – WOHoldDescription: keep blank cells only
+'  STEP 3 ï¿½ WOHoldDescription: keep blank cells only
 ' ============================================================
 Sub Step3_FilterWOHoldDescription(ws As Worksheet)
     Dim whdCol As Long
@@ -201,19 +211,19 @@ Sub Step3_FilterWOHoldDescription(ws As Worksheet)
 
     Dim r As Long
     For r = lastRow To 2 Step -1
-        If Trim(ws.Cells(r, whdCol).Value) <> "" Then
+        If Trim(ws.Cells(r, whdCol).value) <> "" Then
             ws.Rows(r).Delete
         End If
     Next r
 End Sub
 
 ' ============================================================
-'  STEP 4 – Filter today→+7 days by effective date, sort
+'  STEP 4 ï¿½ Filter today?+7 days by effective date, sort
 '           Past dock dates: use RecommitDate as effective date
 ' ============================================================
 Sub Step4_FilterAndSortByDockDate(ws As Worksheet)
     Dim dockCol As Long, recommitCol As Long, priorityCol As Long
-    dockCol     = FindColumn(ws, "DockDate")
+    dockCol = FindColumn(ws, "DockDate")
     recommitCol = FindColumn(ws, "RecommitDate")
     priorityCol = FindColumn(ws, "PriorityCode")
     If dockCol = 0 Then Exit Sub
@@ -241,7 +251,7 @@ Sub Step4_FilterAndSortByDockDate(ws As Worksheet)
     ' Create temp sheet to collect kept rows
     Dim tmp As Worksheet, tmp2 As Worksheet
     Set tmp = wb.Worksheets.Add(After:=wb.Worksheets(wb.Worksheets.Count))
-    tmp.Name = "__tmp_sort"
+    tmp.name = "__tmp_sort"
 
     ' Copy header
     ws.Range(ws.Cells(1, 1), ws.Cells(1, lastCol)).Copy Destination:=tmp.Cells(1, 1)
@@ -252,13 +262,13 @@ Sub Step4_FilterAndSortByDockDate(ws As Worksheet)
 
     ' Collect rows we want to keep into tmp and store an effDate in column lastCol+1
     For r = 2 To lastRow
-        dockVal = ws.Cells(r, dockCol).Value
+        dockVal = ws.Cells(r, dockCol).value
         If IsDate(dockVal) Then
             Dim dockDate As Date
             dockDate = CDate(dockVal)
 
             If dockDate < today And recommitCol > 0 Then
-                rcVal = ws.Cells(r, recommitCol).Value
+                rcVal = ws.Cells(r, recommitCol).value
                 If IsDate(rcVal) Then
                     effDate = CDate(rcVal)
                 Else
@@ -273,14 +283,14 @@ Sub Step4_FilterAndSortByDockDate(ws As Worksheet)
                 If IsDate(effDate) Then
                     If effDate >= today And effDate <= endDate Then
                         ws.Range(ws.Cells(r, 1), ws.Cells(r, lastCol)).Copy Destination:=tmp.Cells(tr, 1)
-                        tmp.Cells(tr, lastCol + 1).Value = effDate
+                        tmp.Cells(tr, lastCol + 1).value = effDate
                         tr = tr + 1
                     End If
                 End If
             Else
                 ' Past dock dates always kept
                 ws.Range(ws.Cells(r, 1), ws.Cells(r, lastCol)).Copy Destination:=tmp.Cells(tr, 1)
-                tmp.Cells(tr, lastCol + 1).Value = effDate
+                tmp.Cells(tr, lastCol + 1).value = effDate
                 tr = tr + 1
             End If
         Else
@@ -300,7 +310,7 @@ Sub Step4_FilterAndSortByDockDate(ws As Worksheet)
 
     ' Create tmp2 and copy header
     Set tmp2 = wb.Worksheets.Add(After:=wb.Worksheets(wb.Worksheets.Count))
-    tmp2.Name = "__tmp_sort2"
+    tmp2.name = "__tmp_sort2"
     tmp.Range(tmp.Cells(1, 1), tmp.Cells(1, lastCol)).Copy Destination:=tmp2.Cells(1, 1)
 
     Dim firstOthersRow As Long
@@ -308,10 +318,10 @@ Sub Step4_FilterAndSortByDockDate(ws As Worksheet)
 
     ' Copy upcoming rows first (effDate between today and endDate)
     For r = 2 To lastTmpRow
-        If IsDate(tmp.Cells(r, lastCol + 1).Value) Then
-            If tmp.Cells(r, lastCol + 1).Value >= today And tmp.Cells(r, lastCol + 1).Value <= endDate Then
+        If IsDate(tmp.Cells(r, lastCol + 1).value) Then
+            If tmp.Cells(r, lastCol + 1).value >= today And tmp.Cells(r, lastCol + 1).value <= endDate Then
                 tmp.Range(tmp.Cells(r, 1), tmp.Cells(r, lastCol)).Copy Destination:=tmp2.Cells(tr, 1)
-                tmp2.Cells(tr, lastCol + 1).Value = tmp.Cells(r, lastCol + 1).Value
+                tmp2.Cells(tr, lastCol + 1).value = tmp.Cells(r, lastCol + 1).value
                 tr = tr + 1
             End If
         End If
@@ -321,9 +331,9 @@ Sub Step4_FilterAndSortByDockDate(ws As Worksheet)
 
     ' Copy other rows
     For r = 2 To lastTmpRow
-        If Not (IsDate(tmp.Cells(r, lastCol + 1).Value) And tmp.Cells(r, lastCol + 1).Value >= today And tmp.Cells(r, lastCol + 1).Value <= endDate) Then
+        If Not (IsDate(tmp.Cells(r, lastCol + 1).value) And tmp.Cells(r, lastCol + 1).value >= today And tmp.Cells(r, lastCol + 1).value <= endDate) Then
             tmp.Range(tmp.Cells(r, 1), tmp.Cells(r, lastCol)).Copy Destination:=tmp2.Cells(tr, 1)
-            tmp2.Cells(tr, lastCol + 1).Value = tmp.Cells(r, lastCol + 1).Value
+            tmp2.Cells(tr, lastCol + 1).value = tmp.Cells(r, lastCol + 1).value
             tr = tr + 1
         End If
     Next r
@@ -335,9 +345,9 @@ Sub Step4_FilterAndSortByDockDate(ws As Worksheet)
     If firstOthersRow > 2 Then
         With tmp2.Sort
             .SortFields.Clear
-            .SortFields.Add Key:=tmp2.Columns(lastCol + 1), SortOn:=xlSortOnValues, Order:=xlAscending
-            If priorityCol > 0 Then .SortFields.Add Key:=tmp2.Columns(priorityCol), SortOn:=xlSortOnValues, Order:=xlAscending
-            If recommitCol > 0 Then .SortFields.Add Key:=tmp2.Columns(recommitCol), SortOn:=xlSortOnValues, Order:=xlAscending
+            .SortFields.Add key:=tmp2.Columns(lastCol + 1), SortOn:=xlSortOnValues, Order:=xlAscending
+            If priorityCol > 0 Then .SortFields.Add key:=tmp2.Columns(priorityCol), SortOn:=xlSortOnValues, Order:=xlAscending
+            If recommitCol > 0 Then .SortFields.Add key:=tmp2.Columns(recommitCol), SortOn:=xlSortOnValues, Order:=xlAscending
             .SetRange tmp2.Range(tmp2.Cells(2, 1), tmp2.Cells(firstOthersRow - 1, lastCol + 1))
             .Header = xlNo
             .Apply
@@ -348,9 +358,9 @@ Sub Step4_FilterAndSortByDockDate(ws As Worksheet)
     If firstOthersRow <= lastTmp2Row Then
         With tmp2.Sort
             .SortFields.Clear
-            If priorityCol > 0 Then .SortFields.Add Key:=tmp2.Columns(priorityCol), SortOn:=xlSortOnValues, Order:=xlAscending
-            If recommitCol > 0 Then .SortFields.Add Key:=tmp2.Columns(recommitCol), SortOn:=xlSortOnValues, Order:=xlAscending
-            .SortFields.Add Key:=tmp2.Columns(lastCol + 1), SortOn:=xlSortOnValues, Order:=xlAscending
+            If priorityCol > 0 Then .SortFields.Add key:=tmp2.Columns(priorityCol), SortOn:=xlSortOnValues, Order:=xlAscending
+            If recommitCol > 0 Then .SortFields.Add key:=tmp2.Columns(recommitCol), SortOn:=xlSortOnValues, Order:=xlAscending
+            .SortFields.Add key:=tmp2.Columns(lastCol + 1), SortOn:=xlSortOnValues, Order:=xlAscending
             .SetRange tmp2.Range(tmp2.Cells(firstOthersRow, 1), tmp2.Cells(lastTmp2Row, lastCol + 1))
             .Header = xlNo
             .Apply
@@ -369,7 +379,7 @@ Sub Step4_FilterAndSortByDockDate(ws As Worksheet)
 End Sub
 
 ' ============================================================
-'  STEP 5 – Format ALL cells: white, Arial 12 Bold, all borders
+'  STEP 5 ï¿½ Format ALL cells: white, Arial 12 Bold, all borders
 ' ============================================================
 Sub Step5_FormatAllCells(ws As Worksheet)
     Dim lastRow As Long, lastCol As Long
@@ -383,32 +393,32 @@ Sub Step5_FormatAllCells(ws As Worksheet)
 
     With rng
         ' Font
-        .Font.Name  = "Arial"
-        .Font.Size  = 12
-        .Font.Bold  = True
+        .Font.name = "Arial"
+        .Font.Size = 12
+        .Font.Bold = True
         .Font.Color = RGB(0, 0, 0)
 
         ' Fill
         .Interior.Color = RGB(255, 255, 255)
 
-        ' Borders – all four sides of each cell
-        .Borders(xlEdgeLeft).LineStyle   = xlContinuous
-        .Borders(xlEdgeRight).LineStyle  = xlContinuous
-        .Borders(xlEdgeTop).LineStyle    = xlContinuous
+        ' Borders ï¿½ all four sides of each cell
+        .Borders(xlEdgeLeft).LineStyle = xlContinuous
+        .Borders(xlEdgeRight).LineStyle = xlContinuous
+        .Borders(xlEdgeTop).LineStyle = xlContinuous
         .Borders(xlEdgeBottom).LineStyle = xlContinuous
-        .Borders(xlInsideVertical).LineStyle   = xlContinuous
+        .Borders(xlInsideVertical).LineStyle = xlContinuous
         .Borders(xlInsideHorizontal).LineStyle = xlContinuous
 
-        .Borders(xlEdgeLeft).Weight   = xlThin
-        .Borders(xlEdgeRight).Weight  = xlThin
-        .Borders(xlEdgeTop).Weight    = xlThin
+        .Borders(xlEdgeLeft).Weight = xlThin
+        .Borders(xlEdgeRight).Weight = xlThin
+        .Borders(xlEdgeTop).Weight = xlThin
         .Borders(xlEdgeBottom).Weight = xlThin
-        .Borders(xlInsideVertical).Weight   = xlThin
+        .Borders(xlInsideVertical).Weight = xlThin
         .Borders(xlInsideHorizontal).Weight = xlThin
 
         ' Alignment
         .HorizontalAlignment = xlLeft
-        .VerticalAlignment   = xlCenter
+        .VerticalAlignment = xlCenter
     End With
 
     ' Color each data row based on CurrentDepartment
@@ -416,7 +426,7 @@ Sub Step5_FormatAllCells(ws As Worksheet)
     For r = 2 To lastRow
         If cdCol > 0 Then
             ws.Range(ws.Cells(r, 1), ws.Cells(r, lastCol)).Font.Color = _
-                GetDepartmentTextColor(ws.Cells(r, cdCol).Value)
+                GetDepartmentTextColor(ws.Cells(r, cdCol).value)
         Else
             ws.Range(ws.Cells(r, 1), ws.Cells(r, lastCol)).Font.Color = RGB(255, 0, 0)
         End If
@@ -431,7 +441,7 @@ Sub Step5_FormatAllCells(ws As Worksheet)
 End Sub
 
 ' ============================================================
-'  STEP 6 – Highlight rows with past DockDate in yellow
+'  STEP 6 ï¿½ Highlight rows with past DockDate in yellow
 ' ============================================================
 Sub Step6_HighlightPastDates(ws As Worksheet)
     Dim dockCol As Long
@@ -448,7 +458,7 @@ Sub Step6_HighlightPastDates(ws As Worksheet)
     Dim r As Long
     For r = 2 To lastRow
         Dim v As Variant
-        v = ws.Cells(r, dockCol).Value
+        v = ws.Cells(r, dockCol).value
         If IsDate(v) Then
             If CDate(v) < today Then
                 ws.Range(ws.Cells(r, 1), ws.Cells(r, lastCol)).Interior.Color = RGB(255, 255, 0)
@@ -458,14 +468,14 @@ Sub Step6_HighlightPastDates(ws As Worksheet)
 End Sub
 
 ' ============================================================
-'  STEP 7 – Page break before each new effective-date day
+'  STEP 7 ï¿½ Page break before each new effective-date day
 '           Past rows group by RecommitDate; future by DockDate
 ' ============================================================
 Sub Step7_InsertPageBreaks(ws As Worksheet)
     ws.ResetAllPageBreaks
 
     Dim dockCol As Long, recommitCol As Long
-    dockCol     = FindColumn(ws, "DockDate")
+    dockCol = FindColumn(ws, "DockDate")
     recommitCol = FindColumn(ws, "RecommitDate")
     If dockCol = 0 Then Exit Sub
 
@@ -481,7 +491,7 @@ Sub Step7_InsertPageBreaks(ws As Worksheet)
     Dim r As Long
     For r = 2 To lastRow
         Dim dv As Variant
-        dv = ws.Cells(r, dockCol).Value
+        dv = ws.Cells(r, dockCol).value
 
         Dim effDay As String
         effDay = ""
@@ -489,7 +499,7 @@ Sub Step7_InsertPageBreaks(ws As Worksheet)
         If IsDate(dv) Then
             If CDate(dv) < today And recommitCol > 0 Then
                 Dim rv As Variant
-                rv = ws.Cells(r, recommitCol).Value
+                rv = ws.Cells(r, recommitCol).value
                 If IsDate(rv) Then
                     effDay = Format(CDate(rv), "YYYY-MM-DD")
                 Else
@@ -513,7 +523,7 @@ Sub Step7_InsertPageBreaks(ws As Worksheet)
 End Sub
 
 ' ============================================================
-'  HELPER – Find column index by header name (case-insensitive)
+'  HELPER ï¿½ Find column index by header name (case-insensitive)
 '           Returns 0 if not found
 ' ============================================================
 Function FindColumn(ws As Worksheet, colName As String) As Long
@@ -521,7 +531,7 @@ Function FindColumn(ws As Worksheet, colName As String) As Long
     lastCol = ws.Cells(1, ws.Columns.Count).End(xlToLeft).Column
     Dim c As Long
     For c = 1 To lastCol
-        If LCase(Trim(ws.Cells(1, c).Value)) = LCase(colName) Then
+        If LCase(Trim(ws.Cells(1, c).value)) = LCase(colName) Then
             FindColumn = c
             Exit Function
         End If
@@ -530,21 +540,21 @@ Function FindColumn(ws As Worksheet, colName As String) As Long
 End Function
 
 ' ============================================================
-'  HELPER – Check if all required headers exist
+'  HELPER ï¿½ Check if all required headers exist
 '           Returns empty string if all found, otherwise
 '           returns list of missing headers
 ' ============================================================
 Function CheckAllHeaders(ws As Worksheet) As String
     Dim allReq(50) As String
-    allReq(1)  = "WONumber"
-    allReq(2)  = "PriorityCode"
-    allReq(3)  = "SoldTo"
-    allReq(4)  = "PartNumber"
-    allReq(5)  = "CustomerPartNumber"
-    allReq(6)  = "Revision"
-    allReq(7)  = "OraclePartNumber"
-    allReq(8)  = "WOScheduleDate"
-    allReq(9)  = "SalesOrderQuantity"
+    allReq(1) = "WONumber"
+    allReq(2) = "PriorityCode"
+    allReq(3) = "SoldTo"
+    allReq(4) = "PartNumber"
+    allReq(5) = "CustomerPartNumber"
+    allReq(6) = "Revision"
+    allReq(7) = "OraclePartNumber"
+    allReq(8) = "WOScheduleDate"
+    allReq(9) = "SalesOrderQuantity"
     allReq(10) = "ReservedQty"
     allReq(11) = "CurrentDepartment"
     allReq(12) = "NextProcess"
@@ -597,7 +607,7 @@ Function CheckAllHeaders(ws As Worksheet) As String
 End Function
 
 ' ============================================================
-'  HELPER – Department text color for whole row
+'  HELPER ï¿½ Department text color for whole row
 '           Blue for listed production departments,
 '           black for final/test/ship departments,
 '           red for anything else
@@ -634,7 +644,7 @@ Function NormalizeDepartment(deptValue As Variant) As String
 End Function
 
 ' ============================================================
-'  HELPER – Add a worksheet button that runs the macro
+'  HELPER ï¿½ Add a worksheet button that runs the macro
 ' ============================================================
 Sub EnsureProductionAutomationButton()
     Dim ws As Worksheet
@@ -653,10 +663,10 @@ Sub EnsureProductionAutomationButton()
 
     Dim btn As Shape
     Set btn = ws.Shapes.AddShape(msoShapeRoundedRectangle, 10, 10, 180, 32)
-    btn.Name = btnName
-    btn.OnAction = "'" & ThisWorkbook.Name & "'!RunProductionAutomation"
+    btn.name = btnName
+    btn.OnAction = "'" & ThisWorkbook.name & "'!RunProductionAutomation"
     btn.TextFrame.Characters.Text = "Run Production Automation"
-    btn.TextFrame.Characters.Font.Name = "Arial"
+    btn.TextFrame.Characters.Font.name = "Arial"
     btn.TextFrame.Characters.Font.Size = 11
     btn.TextFrame.Characters.Font.Bold = True
     btn.TextFrame.Characters.Font.Color = RGB(255, 255, 255)
@@ -665,3 +675,5 @@ Sub EnsureProductionAutomationButton()
     btn.Fill.ForeColor.RGB = RGB(102, 126, 234)
     btn.Line.ForeColor.RGB = RGB(102, 126, 234)
 End Sub
+
+

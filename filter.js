@@ -59,8 +59,19 @@ document.addEventListener('DOMContentLoaded', function () {
       try {
         const wb   = XLSX.read(e.target.result, { type: 'array', cellDates: true });
         const ws   = wb.Sheets[wb.SheetNames[0]];
-        originalData = XLSX.utils.sheet_to_json(ws, { raw: false, dateNF: 'yyyy-mm-dd' });
-        processFile();
+        
+        // Robust header extraction: get the first row as an array of strings
+        const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
+        if (!rows || rows.length === 0) {
+            showStatus('❌ The file appears to be empty', 'error');
+            return;
+        }
+        const headers = rows[0].map(h => String(h || '').trim());
+        
+        // Get data using the headers, ensuring empty cells are represented as ''
+        originalData = XLSX.utils.sheet_to_json(ws, { raw: false, dateNF: 'yyyy-mm-dd', defval: '' });
+        
+        processFile(headers);
       } catch (err) {
         showStatus(`❌ Error reading file: ${err.message}`, 'error');
         downloadBtn.disabled = true;
@@ -70,13 +81,13 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   // ── Main pipeline ──────────────────────────────────────────────────────────
-  function processFile() {
+  function processFile(headers) {
     if (!originalData || originalData.length === 0) {
       showStatus('❌ No data to process', 'error'); return;
     }
 
     // 1. Validate headers
-    const missing = validateHeaders(originalData[0]);
+    const missing = validateHeaders(headers);
     if (missing.length > 0) {
       showStatus(`❌ Missing required columns: ${missing.join(', ')}`, 'error');
       downloadBtn.disabled = true;
@@ -106,10 +117,10 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   // ── 1. Header validation ───────────────────────────────────────────────────
-  function validateHeaders(sampleRow) {
-    const existingKeys = Object.keys(sampleRow).map(k => k.trim().toLowerCase());
+  function validateHeaders(headers) {
+    const existingHeaders = headers.map(h => h.trim().toLowerCase());
     return REQUIRED_COLS.filter(
-      col => !existingKeys.includes(col.trim().toLowerCase())
+      col => !existingHeaders.includes(col.trim().toLowerCase())
     );
   }
 
@@ -326,9 +337,14 @@ document.addEventListener('DOMContentLoaded', function () {
         currentDayKey = dayKey;
       }
 
-      const isPast = dockDate && dockDate < today;
+      // Highlight logic (from macro Step 6/7 logic):
+      // Highlight YELLOW if the EFFECTIVE date is in the past.
+      const isPast = effDate && effDate < today;
       const fill   = isPast ? yellowFill : whiteFill;
-      const font   = { ...baseFont, color: getDepartmentTextColor(row['CurrentDepartment'], blueText, blackText, redText) };
+      
+      // Font color logic based on CurrentDepartment
+      const deptColor = getDepartmentTextColor(row['CurrentDepartment'], blueText, blackText, redText);
+      const font   = { ...baseFont, color: deptColor };
 
       // Apply style to every cell in this row
       for (let c = 0; c < nCols; c++) {
@@ -383,7 +399,7 @@ document.addEventListener('DOMContentLoaded', function () {
     originalData = null; filteredData = null; fileName = '';
     fileInput.value = '';
     fileLabel.style.background = '#f5f5f5';
-    document.querySelector('.file-name').textContent = 'Supported: .xlsx, .xls, .csv';
+    document.querySelector('.file-name').textContent = 'Supported: .xlsx, .xlsm, .xls, .csv';
     statusDiv.textContent = '';
     statusDiv.className = 'status';
     resultsSection.classList.remove('show');
